@@ -20,6 +20,11 @@ def load_feedback_data():
 def main():
     st.set_page_config(page_title="Nexus OCR", page_icon="📝", layout="wide" ,initial_sidebar_state = "collapsed")
 
+    col1, col2, col3 = st.columns([0.825, 2, 1])
+    with col2:
+        image = Image.open("Logo.jpg")
+        st.image(image, width=1000)
+
     st.title("Nexus OCR")
 
     st.write("""
@@ -94,7 +99,7 @@ def main():
 
     # Create a centered container for the canvas
     st.markdown("<h3 style='text-align: center;'>Draw Here:</h3>", unsafe_allow_html=True)
-    col1, col2 = st.columns([0.925,2])
+    col1, col2, col3 = st.columns([1.45, 2, 1])
     with col2:
         canvas_result = st_canvas(
             fill_color=bg_color,
