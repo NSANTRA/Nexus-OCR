@@ -125,8 +125,22 @@ def main():
                 st.rerun()
 
     elif st.session_state.stage == 'feedback':
-        st.write(f"Predicted Character: {st.session_state.predicted_label}")
-        is_correct = st.radio("Is the prediction correct?", ("Yes", "No"), key="radio_correct", index=None)
+        # st.write(f"Predicted Character: {st.session_state.predicted_label}")
+        # is_correct = st.radio("Is the prediction correct?", ("Yes", "No"), key="radio_correct", index=None)
+
+        st.markdown(
+            f"""
+            <div style='text-align: center; font-size: 24px; margin-bottom: 15px;'>
+                Predicted Character: <strong>{st.session_state.predicted_label}</strong>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # Center-align the radio buttons by using columns
+        col1, col2, col3 = st.columns([2.5, 2, 1])
+        with col2:
+            is_correct = st.radio("Is the prediction correct?", ("Yes", "No"), key="radio_correct", index=None)
         
         if is_correct == "Yes":
             st.success("Great! The prediction was correct.")
