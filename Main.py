@@ -20,11 +20,13 @@ def load_feedback_data():
 def main():
     st.set_page_config(page_title="Nexus OCR", page_icon="📝", layout="wide" ,initial_sidebar_state = "collapsed")
 
+    
     col1, col2, col3 = st.columns([0.825, 2, 1])
     with col2:
         image = Image.open("Logo.jpg")
         st.image(image, width=1000)
 
+    st.markdown("---")
     st.title("Nexus OCR")
 
     st.write("""
@@ -42,6 +44,8 @@ def main():
 
     **Note:** This project was developed as part of our learning journey in machine learning and web application development. Your feedback and interactions help us improve and learn. Thank you for being part of our educational experience!
     """)
+
+    st.markdown("---")
 
     model = load_ocr_model()
     df = load_feedback_data()
