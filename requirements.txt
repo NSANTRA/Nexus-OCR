@@ -1,3 +1,4 @@
 tensorflow
 opencv-python-headless
 pillow
+streamlit_drawable_canvas
