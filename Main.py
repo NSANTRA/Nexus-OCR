@@ -7,12 +7,12 @@ from streamlit_drawable_canvas import st_canvas
 from PIL import Image
 
 # Load the pre-trained OCR model
-@st.cache_resource
+@st.cache
 def load_ocr_model():
     return load_model("OCR CNN.h5")
 
 # Load the Feedback CSV file
-@st.cache_data
+@st.cache
 def load_feedback_data():
     return pd.read_csv("feedback.csv")
 
