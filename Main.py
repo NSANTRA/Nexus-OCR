@@ -9,6 +9,12 @@ import subprocess
 import os
 from datetime import datetime
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Set Git SSL verification to false (only if you trust the source)
+os.environ['GIT_SSL_NO_VERIFY'] = '1'
 
 # Load the pre-trained OCR model
 @st.cache(allow_output_mutation=True)
