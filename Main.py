@@ -126,7 +126,7 @@ def main():
                 st.session_state.img_array = np.array(img)
                 st.session_state.predicted_label = preprocess_and_predict(st.session_state.img_array)
                 st.session_state.stage = 'feedback'
-                st.rerun()
+                st.experimental_rerun()
 
     elif st.session_state.stage == 'feedback':
         # st.write(f"Predicted Character: {st.session_state.predicted_label}")
@@ -177,7 +177,7 @@ def main():
         # Single "Start Over" button for both correct and incorrect cases
         if st.button("Start Over", key="start_over"):
             reset_app_state()
-            st.rerun()
+            st.experimental_rerun()
 
     # Add contact information at the bottom of the page
     st.markdown("---")
