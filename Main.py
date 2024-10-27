@@ -5,6 +5,9 @@ import cv2
 from tensorflow.keras.models import load_model
 from streamlit_drawable_canvas import st_canvas
 from PIL import Image
+import subprocess
+import os
+from datetime import datetime
 
 # Load the pre-trained OCR model
 @st.cache(allow_output_mutation = True)
@@ -138,17 +141,43 @@ def main():
             unsafe_allow_html=True
         )
 
-        # Center-align the radio buttons by using columns
+        # Center-align the selection by using columns
         col1, col2, col3 = st.columns([2.5, 2, 1])
         with col2:
-            # Remove index=None and set a default value
-            is_correct = st.radio("Is the prediction correct?", ("Yes", "No"), key="radio_correct")
+            # Using selectbox with an empty first option
+            is_correct = st.selectbox(
+                "Is the prediction correct?",
+                options=["Select an option", "Yes", "No"],
+                key="correct_select"
+            )
         
+        def git_push_changes():
+            try:
+                # Configure git (only needed first time)
+                subprocess.run(["git", "config", "--global", "user.email", "github-actions@github.com"])
+                subprocess.run(["git", "config", "--global", "user.name", "GitHub Actions"])
+                
+                # Add the changed file
+                subprocess.run(["git", "add", "feedback.csv"])
+                
+                # Create commit with timestamp
+                commit_message = f"Update feedback data - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                subprocess.run(["git", "commit", "-m", commit_message])
+                
+                # Push changes
+                subprocess.run(["git", "push"])
+                
+                return True
+            except Exception as e:
+                st.error(f"Error pushing to git: {str(e)}")
+                return False
+
         if is_correct == "Yes":
             st.success("Great! The prediction was correct.")
             if st.button("Start Over", key="start_over_yes"):
                 reset_app_state()
                 st.experimental_rerun()
+                
         elif is_correct == "No":
             feedback_label = st.text_input("Please provide the correct character (0-9 or A-Z):")
             
@@ -171,7 +200,11 @@ def main():
                         df = pd.concat([df, ext_var_df], ignore_index=True)
                         df.to_csv("feedback.csv", index=False)
                         
-                        st.success(f"Thank you for your feedback! You've entered: {correct_label}")
+                        # Push changes to git
+                        if git_push_changes():
+                            st.success(f"Thank you for your feedback! You've entered: {correct_label} and the changes have been pushed to the repository.")
+                        else:
+                            st.warning(f"Feedback saved locally but couldn't push to repository. You've entered: {correct_label}")
                     else:
                         st.warning("Please enter a valid single character (0-9 or A-Z).")
 

@@ -5,3 +5,4 @@ tensorflow==2.10.0
 opencv-python-headless
 pillow
 streamlit_drawable_canvas
+python-git
