@@ -42,12 +42,8 @@ def save_feedback_locally(df, img_array, label_list, correct_label):
         # Append to main DataFrame
         df_updated = pd.concat([df, ext_var_df], ignore_index=True)
         
-        # Save the updated DataFrame
-        feedback_dir = "feedback_data"
-        os.makedirs(feedback_dir, exist_ok=True)
-        
-        # Save the main CSV file
-        df_updated.to_csv(os.path.join(feedback_dir, "feedback.csv"), index=False)
+        # Save the main CSV file1
+        df_updated.to_csv(os.path.join("feedback.csv"), index=False)
         
         # Create a timestamped JSON record of this feedback
         feedback_record = {
@@ -59,7 +55,7 @@ def save_feedback_locally(df, img_array, label_list, correct_label):
         
         # Save individual feedback record
         record_filename = f"feedback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(os.path.join(feedback_dir, record_filename), 'w') as f:
+        with open(os.path.join(record_filename), 'w') as f:
             json.dump(feedback_record, f)
             
         return df_updated, True, "Feedback saved successfully"
