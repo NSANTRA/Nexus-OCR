@@ -129,9 +129,6 @@ def main():
                 st.experimental_rerun()
 
     elif st.session_state.stage == 'feedback':
-        # st.write(f"Predicted Character: {st.session_state.predicted_label}")
-        # is_correct = st.radio("Is the prediction correct?", ("Yes", "No"), key="radio_correct", index=None)
-
         st.markdown(
             f"""
             <div style='text-align: center; font-size: 24px; margin-bottom: 15px;'>
@@ -144,10 +141,14 @@ def main():
         # Center-align the radio buttons by using columns
         col1, col2, col3 = st.columns([2.5, 2, 1])
         with col2:
-            is_correct = st.radio("Is the prediction correct?", ("Yes", "No"), key="radio_correct", index=None)
+            # Remove index=None and set a default value
+            is_correct = st.radio("Is the prediction correct?", ("Yes", "No"), key="radio_correct")
         
         if is_correct == "Yes":
             st.success("Great! The prediction was correct.")
+            if st.button("Start Over", key="start_over_yes"):
+                reset_app_state()
+                st.experimental_rerun()
         elif is_correct == "No":
             feedback_label = st.text_input("Please provide the correct character (0-9 or A-Z):")
             
@@ -174,10 +175,10 @@ def main():
                     else:
                         st.warning("Please enter a valid single character (0-9 or A-Z).")
 
-        # Single "Start Over" button for both correct and incorrect cases
-        if st.button("Start Over", key="start_over"):
-            reset_app_state()
-            st.experimental_rerun()
+            # Separate "Start Over" button for the "No" case
+            if st.button("Start Over", key="start_over_no"):
+                reset_app_state()
+                st.experimental_rerun()
 
     # Add contact information at the bottom of the page
     st.markdown("---")
