@@ -8,16 +8,64 @@ from PIL import Image
 import subprocess
 import os
 from datetime import datetime
+import json
 
 # Load the pre-trained OCR model
-@st.cache(allow_output_mutation = True)
+@st.cache(allow_output_mutation=True)
 def load_ocr_model():
     return load_model("OCR CNN.h5")
 
 # Load the Feedback CSV file
-@st.cache(allow_output_mutation = True)
+@st.cache(allow_output_mutation=True)
 def load_feedback_data():
-    return pd.read_csv("feedback.csv")
+    feedback_path = os.path.join("feedback_data", "feedback.csv")
+    if os.path.exists(feedback_path):
+        return pd.read_csv(feedback_path)
+    return pd.DataFrame()
+
+def save_feedback_locally(df, img_array, label_list, correct_label):
+    """
+    Save feedback data locally and create a JSON record for future processing
+    """
+    try:
+        # Prepare the feedback data
+        ext_var = cv2.resize(img_array, (28, 28), interpolation=cv2.INTER_AREA)
+        ext_var = ext_var.flatten().reshape(1, -1)
+        
+        # Create DataFrame with new feedback
+        columns = [f"pixel{i}" for i in range(1, 785)]
+        ext_var_df = pd.DataFrame(ext_var, columns=columns)
+        
+        # Add the correct label
+        ext_var_df["class"] = label_list.index(correct_label if correct_label.isalpha() else int(correct_label))
+        
+        # Append to main DataFrame
+        df_updated = pd.concat([df, ext_var_df], ignore_index=True)
+        
+        # Save the updated DataFrame
+        feedback_dir = "feedback_data"
+        os.makedirs(feedback_dir, exist_ok=True)
+        
+        # Save the main CSV file
+        df_updated.to_csv(os.path.join(feedback_dir, "feedback.csv"), index=False)
+        
+        # Create a timestamped JSON record of this feedback
+        feedback_record = {
+            "timestamp": datetime.now().isoformat(),
+            "correct_label": correct_label,
+            "pixel_values": ext_var.tolist(),
+            "class_index": int(ext_var_df["class"].iloc[0])
+        }
+        
+        # Save individual feedback record
+        record_filename = f"feedback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        with open(os.path.join(feedback_dir, record_filename), 'w') as f:
+            json.dump(feedback_record, f)
+            
+        return df_updated, True, "Feedback saved successfully"
+        
+    except Exception as e:
+        return df, False, f"Error saving feedback: {str(e)}"
 
 def git_push_changes():
     try:
@@ -37,8 +85,8 @@ def git_push_changes():
         subprocess.run(["git", "fetch"])
         subprocess.run(["git", "pull", "origin", "main"])
         
-        # Add the changed file
-        subprocess.run(["git", "add", "feedback.csv"])
+        # Add all files in feedback_data directory
+        subprocess.run(["git", "add", "feedback_data/*"])
         
         # Create commit with timestamp
         commit_message = f"Update feedback data - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
@@ -52,7 +100,30 @@ def git_push_changes():
         st.error(f"Error pushing to git: {str(e)}")
         return False
 
-# Main app logic
+def handle_feedback_submission(df, img_array, label_list, correct_label):
+    """Handle the feedback submission process"""
+    df_updated, success, message = save_feedback_locally(df, img_array, label_list, correct_label)
+    
+    if success:
+        # Attempt to push changes to git
+        st.info("Attempting to push changes to repository...")
+        if git_push_changes():
+            st.success(f"""
+            Thank you for your feedback! You've entered: {correct_label}
+            The feedback has been saved and pushed to the repository successfully.
+            You can view all collected feedback in the 'feedback_data' directory.
+            """)
+        else:
+            st.warning(f"""
+            Thank you for your feedback! You've entered: {correct_label}
+            The feedback has been saved locally but couldn't be pushed to the repository.
+            You can view all collected feedback in the 'feedback_data' directory.
+            """)
+        return df_updated
+    else:
+        st.error(message)
+        return df
+
 def main():
     st.set_page_config(page_title="Nexus OCR", page_icon="📝", layout="wide", initial_sidebar_state="collapsed")
     
@@ -90,7 +161,6 @@ def main():
 
     def preprocess_and_predict(image_array):
         img = cv2.resize(image_array, (28, 28), interpolation=cv2.INTER_AREA)
-        # Normalize the image
         img = img / 255.0
         image = img.reshape(-1, 28, 28, 1)
         predicted_label_index = np.argmax(model.predict(image))
@@ -110,20 +180,19 @@ def main():
     if 'canvas_key' not in st.session_state:
         st.session_state.canvas_key = 0
 
-    # Function to reset the app state
     def reset_app_state():
         st.session_state.stage = 'draw'
         st.session_state.predicted_label = None
         st.session_state.img_array = None
         st.session_state.canvas_key += 1
 
-    # Options for the canvas
+    # Canvas options
     st.sidebar.header("Canvas Options")
     stroke_width = st.sidebar.slider("Stroke Width", 1, 50, 15)
     stroke_color = st.sidebar.color_picker("Stroke Color", "#000000")
     bg_color = st.sidebar.color_picker("Background Color", "#FFFFFF")
 
-    # Center the canvas using CSS
+    # CSS styling
     st.markdown("""
         <style>
         .canvas-container { display: flex; justify-content: center;}
@@ -138,7 +207,7 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-    # Create a centered container for the canvas
+    # Canvas container
     st.markdown("<h3 style='text-align: center;'>Draw Here:</h3>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1.45, 2, 1])
     with col2:
@@ -175,7 +244,6 @@ def main():
             unsafe_allow_html=True
         )
 
-        # Center-align the selection by using columns
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             is_correct = st.selectbox(
@@ -197,36 +265,15 @@ def main():
                 if st.button("Submit Feedback"):
                     correct_label = feedback_label.upper()
                     if correct_label and len(correct_label) == 1 and (correct_label in [str(i) for i in range(10)] or 'A' <= correct_label <= 'Z'):
-                        # Resize the image to 28x28 and flatten it into 784 pixels
-                        ext_var = cv2.resize(st.session_state.img_array, (28, 28), interpolation=cv2.INTER_AREA)
-                        ext_var = ext_var.flatten().reshape(1, -1)
-                        
-                        # Convert to DataFrame with pixel column names pixel1 to pixel784
-                        columns = [f"pixel{i}" for i in range(1, 785)]
-                        ext_var_df = pd.DataFrame(ext_var, columns=columns)
-                        
-                        # Add the correct label to the "class" column
-                        ext_var_df["class"] = label_list.index(correct_label if correct_label.isalpha() else int(correct_label))
-                        
-                        # Append feedback to the DataFrame and save to CSV
-                        df = pd.concat([df, ext_var_df], ignore_index=True)
-                        df.to_csv("feedback.csv", index=False)
-                        
-                        # Push changes to git with additional debugging information
-                        st.info("Attempting to push changes to repository...")
-                        if git_push_changes():
-                            st.success(f"Thank you for your feedback! You've entered: {correct_label} and the changes have been pushed to the repository.")
-                        else:
-                            st.warning(f"Feedback saved locally but couldn't push to repository. You've entered: {correct_label}")
+                        df = handle_feedback_submission(df, st.session_state.img_array, label_list, correct_label)
                     else:
                         st.warning("Please enter a valid single character (0-9 or A-Z).")
 
-            # Separate "Start Over" button for the "No" case
             if st.button("Start Over", key="start_over_no"):
                 reset_app_state()
                 st.experimental_rerun()
 
-    # Add contact information at the bottom of the page
+    # Contact information
     st.markdown("---")
     st.header("Contact Us")
     st.write("""
