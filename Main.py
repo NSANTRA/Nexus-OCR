@@ -154,8 +154,8 @@ def main():
         def git_push_changes():
             try:
                 # Configure git (only needed first time)
-                subprocess.run(["git", "config", "--global", "user.email", "github-actions@github.com"])
-                subprocess.run(["git", "config", "--global", "user.name", "GitHub Actions"])
+                subprocess.run(["git", "config", "--global", "user.email", "neelotpal.santra@gmail.com"])
+                subprocess.run(["git", "config", "--global", "user.name", "NSANTRA"])
                 
                 # Add the changed file
                 subprocess.run(["git", "add", "feedback.csv"])
