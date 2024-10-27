@@ -82,7 +82,7 @@ def git_push_changes():
         subprocess.run(["git", "pull", "origin", "main"])
         
         # Add all files in feedback_data directory
-        subprocess.run(["git", "add", "feedback_data/*"])
+        subprocess.run(["git", "add", "."])
         
         # Create commit with timestamp
         commit_message = f"Update feedback data - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
