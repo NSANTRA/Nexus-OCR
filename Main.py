@@ -10,19 +10,51 @@ import os
 from datetime import datetime
 
 # Load the pre-trained OCR model
-@st.cache(allow_output_mutation = True)
+@st.cache  # Updated from cache to cache_resource
 def load_ocr_model():
     return load_model("OCR CNN.h5")
 
 # Load the Feedback CSV file
-@st.cache(allow_output_mutation = True)
+@st.cache  # Updated from cache to cache_data
 def load_feedback_data():
     return pd.read_csv("feedback.csv")
 
+def git_push_changes():
+    try:
+        # Use HTTPS URL with token
+        repo_url = "https://github.com/NSANTRA/Nexus-OCR.git"
+        
+        # Configure git
+        subprocess.run(["git", "config", "--global", "user.email", "neelotpal.santra@gmail.com"])
+        subprocess.run(["git", "config", "--global", "user.name", "NSANTRA"])
+        
+        # Set up the repository if it's not already set up
+        if not os.path.exists(".git"):
+            subprocess.run(["git", "init"])
+            subprocess.run(["git", "remote", "add", "origin", repo_url])
+        
+        # Fetch and pull latest changes
+        subprocess.run(["git", "fetch"])
+        subprocess.run(["git", "pull", "origin", "main"])
+        
+        # Add the changed file
+        subprocess.run(["git", "add", "feedback.csv"])
+        
+        # Create commit with timestamp
+        commit_message = f"Update feedback data - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        subprocess.run(["git", "commit", "-m", commit_message])
+        
+        # Push changes
+        subprocess.run(["git", "push", "-u", "origin", "main"])
+        
+        return True
+    except Exception as e:
+        st.error(f"Error pushing to git: {str(e)}")
+        return False
+
 # Main app logic
 def main():
-    st.set_page_config(page_title="Nexus OCR", page_icon="📝", layout="wide" ,initial_sidebar_state = "collapsed")
-
+    st.set_page_config(page_title="Nexus OCR", page_icon="📝", layout="wide", initial_sidebar_state="collapsed")
     
     col1, col2, col3 = st.columns([0.825, 2, 1])
     with col2:
@@ -58,6 +90,8 @@ def main():
 
     def preprocess_and_predict(image_array):
         img = cv2.resize(image_array, (28, 28), interpolation=cv2.INTER_AREA)
+        # Normalize the image
+        img = img / 255.0
         image = img.reshape(-1, 28, 28, 1)
         predicted_label_index = np.argmax(model.predict(image))
         predicted_label = label_list[predicted_label_index]
@@ -142,36 +176,14 @@ def main():
         )
 
         # Center-align the selection by using columns
-        col1, col2, col3 = st.columns([1, 2, 1])
+        col1, col2, col3 = st.columns([2.5, 2, 1])
         with col2:
-            # Using selectbox with an empty first option
             is_correct = st.selectbox(
                 "Is the prediction correct?",
                 options=["Select an option", "Yes", "No"],
                 key="correct_select"
             )
         
-        def git_push_changes():
-            try:
-                # Configure git (only needed first time)
-                subprocess.run(["git", "config", "--global", "user.email", "neelotpal.santra@gmail.com"])
-                subprocess.run(["git", "config", "--global", "user.name", "NSANTRA"])
-                
-                # Add the changed file
-                subprocess.run(["git", "add", "feedback.csv"])
-                
-                # Create commit with timestamp
-                commit_message = f"Update feedback data - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                subprocess.run(["git", "commit", "-m", commit_message])
-                
-                # Push changes
-                subprocess.run(["git", "push"])
-                
-                return True
-            except Exception as e:
-                st.error(f"Error pushing to git: {str(e)}")
-                return False
-
         if is_correct == "Yes":
             st.success("Great! The prediction was correct.")
             if st.button("Start Over", key="start_over_yes"):
@@ -200,7 +212,8 @@ def main():
                         df = pd.concat([df, ext_var_df], ignore_index=True)
                         df.to_csv("feedback.csv", index=False)
                         
-                        # Push changes to git
+                        # Push changes to git with additional debugging information
+                        st.info("Attempting to push changes to repository...")
                         if git_push_changes():
                             st.success(f"Thank you for your feedback! You've entered: {correct_label} and the changes have been pushed to the repository.")
                         else:
