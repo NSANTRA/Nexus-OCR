@@ -1,7 +1,7 @@
+altair==4.2.0
 streamlit==1.12.0
 numpy==1.26.4
 tensorflow==2.10.0
-altair==4.2.0
 opencv-python-headless
 pillow
 streamlit_drawable_canvas
