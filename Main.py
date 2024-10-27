@@ -176,7 +176,7 @@ def main():
         )
 
         # Center-align the selection by using columns
-        col1, col2, col3 = st.columns([2.5, 2, 1])
+        col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             is_correct = st.selectbox(
                 "Is the prediction correct?",
